@@ -52,7 +52,9 @@ export default function PowerBIReportEmbed({ reportId, embedUrl }: PowerBIEmbedP
 
   // For POC demonstration, show a placeholder instead of actual Power BI embedding
   // This allows us to test the UI without needing actual Power BI credentials
-  if (!process.env.NEXT_PUBLIC_POWERBI_REPORT_ID || !PowerBIEmbed || !models) {
+  // Always show placeholder in POC mode OR when no Power BI config is provided
+  const isPocMode = process.env.NEXT_PUBLIC_POC_MODE === 'true';
+  if (isPocMode || !process.env.NEXT_PUBLIC_POWERBI_REPORT_ID || !PowerBIEmbed || !models) {
     return (
       <div className="w-full h-full bg-white border flex flex-col">
         <div className="bg-gray-800 text-white p-2 text-sm">

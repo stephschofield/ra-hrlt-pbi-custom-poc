@@ -2,6 +2,20 @@ import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { loginRequest } from '@/lib/msal-config';
 
 export function useAuth() {
+  // POC Mode: Skip authentication if environment variable is set
+  const isPocMode = process.env.NEXT_PUBLIC_POC_MODE === 'true';
+
+  // Mock data for POC mode
+  if (isPocMode) {
+    return {
+      isAuthenticated: true, // Always authenticated in POC mode
+      login: () => console.log('POC Mode: Login bypassed'),
+      logout: () => console.log('POC Mode: Logout bypassed'),
+      getAccessToken: async () => 'mock-access-token-poc', // Mock token
+    };
+  }
+
+  // Real MSAL implementation
   const { instance } = useMsal();
   const isAuthenticated = useIsAuthenticated();
 

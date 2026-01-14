@@ -12,13 +12,26 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [msalInstance, setMsalInstance] = useState<PublicClientApplication | null>(null);
 
+  // POC Mode: Skip authentication if environment variable is set
+  const isPocMode = process.env.NEXT_PUBLIC_POC_MODE === 'true';
+
   useEffect(() => {
+    if (isPocMode) {
+      // In POC mode, skip MSAL initialization
+      return;
+    }
+
     // Only create MSAL instance on client side
     if (typeof window !== 'undefined') {
       const instance = new PublicClientApplication(msalConfig);
       setMsalInstance(instance);
     }
-  }, []);
+  }, [isPocMode]);
+
+  // POC Mode: Skip authentication entirely
+  if (isPocMode) {
+    return <div>{children}</div>;
+  }
 
   // Show loading while MSAL initializes
   if (!msalInstance) {

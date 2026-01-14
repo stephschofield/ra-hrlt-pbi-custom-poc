@@ -9,6 +9,9 @@ export default function Home() {
   const { isAuthenticated, login, logout } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  // Check if we're in POC mode
+  const isPocMode = process.env.NEXT_PUBLIC_POC_MODE === 'true';
+
   if (!isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -38,9 +41,16 @@ export default function Home() {
       {/* Top navigation bar */}
       <div className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 z-40">
         <div className="flex justify-between items-center">
-          <h1 className="text-lg font-semibold text-gray-900">
-            HR Leadership Team Dashboard
-          </h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-lg font-semibold text-gray-900">
+              HR Leadership Team Dashboard
+            </h1>
+            {isPocMode && (
+              <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
+                POC MODE
+              </span>
+            )}
+          </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600">Welcome, Manager</span>
             <button

@@ -22,14 +22,18 @@ export const msalConfig: Configuration = {
   },
 };
 
-// Scopes needed for Power BI and Microsoft Graph
+// Scopes needed for basic authentication and Microsoft Graph
 export const loginRequest = {
   scopes: [
-    'User.Read',
-    'Directory.Read.All',
-    'https://analysis.windows.net/powerbi/api/.default', // Power BI scope
+    'User.Read', // Basic profile information
+    'openid',
+    'profile',
+    'offline_access',
   ],
 };
 
-// Power BI specific scopes
-export const powerBiScopes = ['https://analysis.windows.net/powerbi/api/.default'];
+// Microsoft Graph specific scopes (separate request)
+export const graphScopes = ['User.Read', 'Directory.Read.All'];
+
+// Power BI specific scopes (separate request)
+export const powerBiScopes = ['https://analysis.windows.net/powerbi/api/Report.Read.All'];
