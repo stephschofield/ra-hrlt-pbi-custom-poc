@@ -1,0 +1,21 @@
+# Environment and credentials
+.env
+.env.local
+.env.*.local
+.vscode/settings.json
+
+# MCP temporary files
+.mcp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary directories
+tmpclaude-*-cwd/

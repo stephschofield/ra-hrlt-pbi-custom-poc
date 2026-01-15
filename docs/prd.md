@@ -195,7 +195,72 @@ AI assistant will not answer questions about specific individuals by name
 
 ---
 
-## 5. Functional Requirements
+## 5. AI Query Categories
+
+The AI assistant must be capable of answering specific analytical questions across four key dimensions: Leader, Region, Country, and Location. These represent the core insights managers need for compliance monitoring and improvement.
+
+### 5.1 Leader-Level Compliance Questions
+
+**Core Questions:**
+- What is the current in-office compliance for each leader's team?
+- Which leaders have the highest and lowest compliance this month?
+- Are there any leaders whose teams consistently fall below the expected in-office threshold of 70%?
+- How does compliance vary across direct reports of each leader?
+
+**Implementation Notes:**
+- Queries must respect hierarchical access (manager can only see their downward org tree)
+- Privacy protection applies (6-person minimum rule)
+- Team anonymization required ("Team A, B, C" vs. real names)
+
+### 5.2 Region-Level Compliance Questions
+
+**Core Questions:**
+- What is the average in-office compliance by region?
+- Which regions are trending upward or downward in compliance over the past quarter?
+- Are there regional patterns in non-compliance (e.g., specific days or weeks, hybrid vs on-site employees)?
+- How does regional compliance compare to global benchmarks?
+
+**Implementation Notes:**
+- Requires aggregation across multiple office locations within regions
+- Trend analysis needs 3-month historical data minimum
+- Pattern detection for day-of-week, week-of-month variations
+
+### 5.3 Country-Level Compliance Questions
+
+**Core Questions:**
+- What is the in-office compliance by country?
+- Are there country-specific holidays affecting compliance?
+- Which countries show the most improvement or decline in compliance month-over-month?
+
+**Implementation Notes:**
+- Holiday calendar integration required for accurate compliance calculation
+- Country grouping may span multiple regions/locations
+- Excludes US federal holidays from eligible days calculation
+
+### 5.4 Location-Level Compliance Questions
+
+**Core Questions:**
+- What is the daily/weekly in-office compliance at each office location?
+- Which locations are consistently underutilized or over capacity?
+- Are there specific locations with recurring compliance issues?
+
+**Implementation Notes:**
+- Office capacity data may need external integration (real estate systems)
+- Daily granularity requires more detailed badge swipe analysis
+- Location-specific patterns may indicate infrastructure or policy issues
+
+### 5.5 Data Requirements for AI Queries
+
+| Query Type | Required Data Fields | Data Source |
+|---|---|---|
+| Leader-Level | manager_key, employee_key, badge_swipe_date, org_hierarchy | Employee data + Badge data |
+| Region-Level | location, region_mapping, badge_swipe_date | Location master + Badge data |
+| Country-Level | location, country_mapping, holiday_calendar, badge_swipe_date | Location master + Badge data + Holiday data |
+| Location-Level | location, office_capacity, badge_swipe_date | Location master + Badge data + Real estate data |
+
+---
+
+## 6. Functional Requirements
 
 | ID | Requirement | Description | Priority |
 |---|---|---|---|
@@ -211,6 +276,10 @@ AI assistant will not answer questions about specific individuals by name
 | FR-10 | Historical Data | System displays 3 months of historical trend data | P1 |
 | FR-11 | Data Refresh Indicator | UI shows "Last updated: [date]" timestamp | P2 |
 | FR-12 | Help Documentation | In-app help explains calculation methodology and privacy rules | P2 |
+| FR-13 | Leader-Level Queries | AI handles team-specific questions: current compliance per leader, highest/lowest compliance leaders, leaders below 70% threshold, direct report compliance variance | P1 |
+| FR-14 | Region-Level Queries | AI provides regional analytics: average compliance by region, regional trends over quarters, regional non-compliance patterns, regional vs global benchmark comparisons | P1 |
+| FR-15 | Country-Level Queries | AI supports country-specific analysis: compliance by country, holiday impact analysis, month-over-month country improvements/declines | P1 |
+| FR-16 | Location-Level Queries | AI answers location questions: daily/weekly compliance per office, location utilization patterns, recurring compliance issues by location | P2 |
 
 **Priority Legend:** P0 = Must Have (POC Blocker) | P1 = Should Have | P2 = Nice to Have
 

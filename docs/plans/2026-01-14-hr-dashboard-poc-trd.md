@@ -17,14 +17,14 @@ This Technical Requirements Document (TRD) defines the technical architecture fo
 
 - **Frontend:** Next.js web application with Azure AD authentication
 - **Power BI:** Embedded reports with hierarchical access controls
-- **AI Assistant:** Copilot Studio agent connected to Databricks Genie
-- **Data Layer:** Synthetic compliance data in Databricks Unity Catalog
+- **AI Assistant:** Copilot Studio agent connected to Power BI Service for data access
+- **Data Layer:** Synthetic compliance data in Databricks Unity Catalog, Power BI semantic model providing data access layer
 - **Security:** Role-based access enforcing organizational hierarchy
 
 ### Key Design Decisions
 
 1. **Overlay UI Pattern:** Full-screen Power BI with collapsible AI chat panel
-2. **Direct Integration:** Copilot Studio → Databricks Genie (no middleware for POC)
+2. **Unified Data Access:** Both Power BI Embed and Copilot Studio connect through Power BI Service
 3. **Unity Catalog Security:** Hierarchical data access enforced at database layer
 4. **Synthetic Data Scope:** Leader + Region analysis with 6 months of realistic patterns
 
@@ -36,27 +36,40 @@ This Technical Requirements Document (TRD) defines the technical architecture fo
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Next.js Web App                         │
+│                        Next.js Web App                          │
+│                    (Azure AD Authentication)                    │
 │  ┌─────────────────────┐    ┌─────────────────────────────────┐ │
-│  │   Power BI Embed    │    │     Copilot Studio Widget      │ │
-│  │   (Full Screen)     │    │    (Collapsible Overlay)       │ │
+│  │   Power BI Embed    │    │     Copilot Studio Widget       │ │
+│  │   (Full Screen)     │    │     (Collapsible Overlay)       │ │
 │  └─────────────────────┘    └─────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
-                              │                     │
-                              │ Azure AD Token      │ Azure AD Token
-                              ▼                     ▼
-┌─────────────────────────────────────┐  ┌─────────────────────────
-│           Power BI Service          │  │      Copilot Studio
-│        (User-Owns-Data)             │  │   (Authenticated Agent)
-└─────────────────────────────────────┘  └─────────────────────────
-                                                      │
-                                                      │ Direct API Call
-                                                      ▼
-                                         ┌─────────────────────────
-                                         │   Databricks Genie API
-                                         │   (Unity Catalog RLS)
-                                         └─────────────────────────
+           │                                   │
+           │ Azure AD Token                    │ Azure AD Token
+           │                                   │
+           └───────────────┬───────────────────┘
+                           │
+                           ▼
+              ┌──────────────────────────┐
+              │   Power BI Service       │
+              │   (User-Owns-Data)       │
+              └──────────────────────────┘
+                           │
+                           │ Power BI Semantic Model
+                           │
+                           ▼
+              ┌──────────────────────────┐
+              │  Databricks Unity        │
+              │  Catalog (Data Source    │
+              │  for Power BI)           │
+              └──────────────────────────┘
 ```
+
+**Key Data Flow Points:**
+- **Next.js App** hosts both Power BI embed and Copilot Studio widget
+- **Both components** connect to Power BI Service with Azure AD authentication
+- **Power BI Service** → Databricks Unity Catalog (via Power BI semantic model)
+- **Copilot Studio** queries data through Power BI Service (not direct to Databricks)
+- Hierarchical access enforced via Unity Catalog RLS and Power BI security
 
 ### 1.2 Component Responsibilities
 
@@ -64,8 +77,8 @@ This Technical Requirements Document (TRD) defines the technical architecture fo
 |-----------|----------------|
 | **Next.js App** | Authentication, UI orchestration, session management |
 | **Power BI Embed** | Data visualization, basic filtering, hierarchical data access |
-| **Copilot Studio** | Natural language processing, conversation flows, AI responses |
-| **Databricks Genie** | SQL query generation, data analysis, compliance calculations |
+| **Copilot Studio** | Natural language processing, conversation flows, AI responses via Power BI Service |
+| **Power BI Service** | Data access layer, semantic model, security enforcement |
 | **Unity Catalog** | Row-level security, organizational hierarchy enforcement |
 
 ---
@@ -217,7 +230,7 @@ const embedConfig: models.IReportEmbedConfiguration = {
 ### 5.1 Agent Configuration
 
 **Authentication Method:** Azure AD (not anonymous iframe)
-**Data Connection:** Direct to Databricks Genie API
+**Data Connection:** Power BI Service (via Power BI semantic model)
 **Conversation Scope:** HR compliance analysis only
 
 ### 5.2 Priority Conversation Flows
@@ -246,7 +259,7 @@ Agent Configuration:
   Description: "AI assistant for analyzing workforce compliance data"
   Authentication: Azure AD
   Data Sources:
-    - Databricks Genie Workspace
+    - Power BI Service (via semantic model)
   Conversation Topics:
     - Compliance trends
     - Regional analysis
