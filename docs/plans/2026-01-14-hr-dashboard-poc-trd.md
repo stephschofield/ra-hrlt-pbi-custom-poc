@@ -75,9 +75,9 @@ This Technical Requirements Document (TRD) defines the technical architecture fo
 
 | Component | Responsibility |
 |-----------|----------------|
-| **Next.js App** | Authentication, UI orchestration, session management |
-| **Power BI Embed** | Data visualization, basic filtering, hierarchical data access |
-| **Copilot Studio** | Natural language processing, conversation flows, AI responses via Power BI Service |
+| **Next.js App** | Authentication, UI orchestration, session management, **role-based view toggle** |
+| **Power BI Embed** | Data visualization, basic filtering, hierarchical data access, **dynamic role filtering** |
+| **Copilot Studio** | Natural language processing, conversation flows, AI responses via Power BI Service, **role-aware contextual responses** |
 | **Power BI Service** | Data access layer, semantic model, security enforcement |
 | **Unity Catalog** | Row-level security, organizational hierarchy enforcement |
 
@@ -97,10 +97,12 @@ This Technical Requirements Document (TRD) defines the technical architecture fo
 ├── components/
 │   ├── PowerBIEmbed.tsx          # Power BI embedding component
 │   ├── CopilotChat.tsx           # Copilot Studio widget wrapper
-│   └── LayoutOverlay.tsx         # Overlay UI management
+│   ├── LayoutOverlay.tsx         # Overlay UI management
+│   └── RoleToggle.tsx            # Role-based view selector (Manager/Director/SVP)
 ├── lib/
 │   ├── msal-config.ts            # Azure AD configuration
-│   └── hierarchy-service.ts      # User hierarchy lookup
+│   ├── hierarchy-service.ts      # User hierarchy lookup
+│   └── role-filter-service.ts    # Role-based data filtering logic
 └── styles/
     └── dashboard.module.css      # Overlay and responsive styles
 ```
@@ -114,11 +116,19 @@ This Technical Requirements Document (TRD) defines the technical architecture fo
 - **Backdrop overlay** dims Power BI (opacity: 0.1) when chat active
 - **Responsive design** adapts panel size for mobile/tablet
 
+**Role Toggle Component:**
+- **Dropdown selector** in header: "View as: Manager | Director | SVP"
+- **State management** using React context for role selection
+- **Dynamic filtering** triggers Power BI filter update on role change
+- **Visual indicator** shows current role with badge/icon
+- **Default role** determined by user's actual Azure AD role/group
+
 **Power BI Integration:**
 - **User-owns-data** embedding model with Azure AD tokens
 - **JavaScript API** for programmatic control (not basic iframe)
 - **Basic filtering** exposed in clean top bar (date range, team selector)
 - **Hierarchical filtering** applied automatically based on user identity
+- **Role-based filtering** adjusts data scope based on demo role selection
 
 **Chat Interface:**
 - **Copilot Studio** authenticated web chat widget
@@ -162,29 +172,51 @@ Permissions:
 
 **Implementation:**
 ```typescript
-// User hierarchy lookup
-const getUserHierarchy = async (userEmail: string) => {
+// User hierarchy lookup with role-based demo toggle
+const getUserHierarchy = async (userEmail: string, demoRole?: 'Manager' | 'Director' | 'SVP') => {
   // Query synthetic org data to get user's position
   const userInfo = await databricksQuery(`
-    SELECT employee_id, manager_id, region, country
+    SELECT employee_id, manager_id, region, country, role_level
     FROM employees
     WHERE employee_email = '${userEmail}'
   `);
 
-  // Get all direct reports (recursively)
-  const directReports = await getDirectReports(userInfo.employee_id);
+  // Determine effective role (demo override or actual role)
+  const effectiveRole = demoRole || userInfo.role_level;
+
+  // Get allowed data scope based on role
+  let dataScope;
+  switch (effectiveRole) {
+    case 'SVP':
+      // SVPs see all organizational data
+      dataScope = await getAllOrganizationalData();
+      break;
+    case 'Director':
+      // Directors see department/region level
+      dataScope = await getDepartmentData(userInfo.employee_id);
+      break;
+    case 'Manager':
+    default:
+      // Managers see only direct reports
+      dataScope = await getDirectReports(userInfo.employee_id);
+      break;
+  }
 
   return {
     userLevel: userInfo,
-    allowedTeams: directReports
+    effectiveRole,
+    allowedTeams: dataScope.teams,
+    allowedRegions: dataScope.regions,
+    allowedCountries: dataScope.countries
   };
 };
 ```
 
 **Enforcement Points:**
-1. **Power BI filters** applied automatically on dashboard load
+1. **Power BI filters** applied automatically on dashboard load based on role
 2. **Unity Catalog RLS** enforces same hierarchy in Databricks
 3. **API validation** ensures all queries respect organizational boundaries
+4. **Role toggle** updates filters dynamically without page reload
 
 ---
 
@@ -206,7 +238,39 @@ const embedConfig: models.IReportEmbedConfiguration = {
       statusBar: { visible: false }
     }
   },
-  filters: hierarchicalFilters      // Applied based on user identity
+  filters: getRoleBasedFilters(selectedRole, hierarchicalData)  // Dynamic filters based on role toggle
+};
+
+// Role-based filter generation
+const getRoleBasedFilters = (role: 'Manager' | 'Director' | 'SVP', data: HierarchyData) => {
+  const filters = [];
+  
+  switch (role) {
+    case 'SVP':
+      // No filters - SVPs see all data
+      break;
+    case 'Director':
+      // Filter to department/region
+      filters.push({
+        $schema: "http://powerbi.com/product/schema#basic",
+        target: { table: "employees", column: "region" },
+        operator: "In",
+        values: data.allowedRegions
+      });
+      break;
+    case 'Manager':
+    default:
+      // Filter to direct reports only
+      filters.push({
+        $schema: "http://powerbi.com/product/schema#basic",
+        target: { table: "employees", column: "manager_id" },
+        operator: "In",
+        values: [data.userLevel.employee_id]
+      });
+      break;
+  }
+  
+  return filters;
 };
 ```
 
@@ -235,36 +299,55 @@ const embedConfig: models.IReportEmbedConfiguration = {
 
 ### 5.2 Priority Conversation Flows
 
+**Role-Aware AI Responses:**
+The AI assistant adapts its responses based on the selected demo role, providing insights appropriate to each level.
+
 **1. Trend Analysis:**
 - "Which countries show most improvement or decline month-over-month?"
-- Expected response: Data table with country, current %, previous %, change
+- **SVP response:** Complete organizational view with strategic recommendations
+- **Director response:** Department/region focused with tactical actions
+- **Manager response:** Team-specific trends with operational guidance
 
 **2. Pattern Recognition:**
 - "Are there regional patterns in non-compliance?"
-- Expected response: Day-of-week analysis, seasonal patterns, location-specific issues
+- **SVP response:** Cross-regional patterns, organizational initiatives needed
+- **Director response:** Regional/departmental patterns, resource allocation suggestions
+- **Manager response:** Team-level patterns, immediate coaching opportunities
 
 **3. Benchmark Comparison:**
 - "How does regional compliance compare to global benchmarks?"
-- Expected response: Regional performance vs 70% threshold and peer regions
+- **SVP response:** Full organizational benchmarking, competitive positioning
+- **Director response:** Department vs peer departments, improvement targets
+- **Manager response:** Team vs department average, specific action items
 
 **4. Location Analysis:**
 - "Are there specific locations with recurring compliance issues?"
-- Expected response: Location ranking, trend analysis, suggested interventions
+- **SVP response:** All locations ranked, strategic facility decisions
+- **Director response:** Locations within scope, tactical interventions
+- **Manager response:** Team's primary location, day-to-day adjustments
 
 ### 5.3 Copilot Studio Setup
 
 ```yaml
 Agent Configuration:
   Name: "HR Compliance Assistant"
-  Description: "AI assistant for analyzing workforce compliance data"
+  Description: "AI assistant for analyzing workforce compliance data with role-aware insights"
   Authentication: Azure AD
   Data Sources:
     - Power BI Service (via semantic model)
+  Role Context:
+    - Current demo role (Manager/Director/SVP)
+    - User's actual organizational level
+    - Allowed data scope based on role
   Conversation Topics:
-    - Compliance trends
-    - Regional analysis
-    - Performance benchmarking
-    - Location-specific insights
+    - Compliance trends (role-appropriate scope)
+    - Regional analysis (filtered by role access)
+    - Performance benchmarking (peer-level comparisons)
+    - Location-specific insights (within role purview)
+  Response Adaptation:
+    - Strategic language for SVP queries
+    - Tactical language for Director queries  
+    - Operational language for Manager queries
 ```
 
 ---
@@ -281,6 +364,7 @@ CREATE TABLE employees (
   employee_email VARCHAR(100),  -- Maps to Azure AD
   employee_name VARCHAR(100),
   manager_name VARCHAR(100),
+  role_level VARCHAR(20),       -- Manager, Director, SVP (for demo toggle)
   region VARCHAR(50),           -- North America, EMEA, APAC
   country VARCHAR(50),          -- USA, Canada, UK, Germany, Singapore
   location VARCHAR(50),         -- Austin, Milwaukee, London, Munich
@@ -398,6 +482,9 @@ SET ROW FILTER get_user_teams(current_user()) ON (employee_id);
 **Technical Validation:**
 - [ ] Authentication works for all security group members
 - [ ] Hierarchical filtering prevents unauthorized data access
+- [ ] Role toggle switches between Manager/Director/SVP views smoothly
+- [ ] Data filtering adjusts correctly for each role level
+- [ ] AI responses adapt contextually to selected role
 - [ ] Power BI reports load within 5 seconds
 - [ ] Copilot responds to priority questions within 15 seconds
 - [ ] Overlay UI works on desktop, tablet, and mobile
@@ -541,6 +628,28 @@ COPILOT_STUDIO_BOT_ID=<bot-id>
 3. "Are there patterns in Friday compliance?"
 4. "How do we compare to the 70% benchmark?"
 5. "Show me individual employee data" (should be declined)
+
+**Role Toggle Demo Scenarios:**
+1. **Manager View:**
+   - Shows: Direct reports only (Team A, B, C)
+   - AI answers: "Your team's compliance is 72.3%"
+   - Data scope: 20-30 employees
+
+2. **Director View:**
+   - Shows: All teams in department (5-7 teams)
+   - AI answers: "Your department's compliance is 74.1% across 6 teams"
+   - Data scope: 80-100 employees
+
+3. **SVP View:**
+   - Shows: Full organization (all regions)
+   - AI answers: "Organizational compliance is 71.8% across North America (75%), EMEA (68%), APAC (72%)"
+   - Data scope: 150-200 employees
+
+**Toggle Test Cases:**
+- Switch from Manager → Director (filter updates within 3 seconds)
+- Switch from Director → SVP (shows additional regions)
+- Switch from SVP → Manager (restricts data appropriately)
+- Verify privacy rules enforced at all role levels
 
 ---
 

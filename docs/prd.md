@@ -193,6 +193,38 @@ AI assistant will not answer questions about specific individuals by name
 - US federal holidays (10 company-observed)
 - Approved PTO days (from synthetic dataset)
 
+### 4.5 Role-Based View Toggle (Demo Feature)
+
+**Capability:** Toggle control to switch between different role views for demonstration purposes
+
+**Role Hierarchy (Highest to Lowest Access):**
+1. **SVP (Senior Vice President)** - Full organizational access
+   - View all regions, countries, and locations
+   - Access to global benchmarks and cross-organizational comparisons
+   - Complete leadership hierarchy visibility
+   - Strategic-level aggregated insights
+
+2. **Director** - Multi-team/departmental access
+   - View all teams within their department or region
+   - Access to country and location-level data within scope
+   - Leadership team performance comparisons
+   - Tactical-level insights
+
+3. **Manager** - Team-level access
+   - View only direct reports and immediate sub-teams
+   - Location-specific data for their team
+   - Day-to-day operational insights
+   - Individual team performance metrics
+
+**Demo Toggle Behavior:**
+- **Dropdown selector** in dashboard header: "View as: SVP | Director | Manager"
+- **Data filtering** adjusts automatically based on selected role
+- **AI assistant context** adapts responses to role-appropriate insights
+- **Visual emphasis** on role-specific KPIs and recommendations
+- **Privacy rules** still enforced at all role levels (6-person minimum)
+
+**Use Case:** Enables single demo to showcase different stakeholder experiences without switching users or browsers
+
 ---
 
 ## 5. AI Query Categories
@@ -280,6 +312,9 @@ The AI assistant must be capable of answering specific analytical questions acro
 | FR-14 | Region-Level Queries | AI provides regional analytics: average compliance by region, regional trends over quarters, regional non-compliance patterns, regional vs global benchmark comparisons | P1 |
 | FR-15 | Country-Level Queries | AI supports country-specific analysis: compliance by country, holiday impact analysis, month-over-month country improvements/declines | P1 |
 | FR-16 | Location-Level Queries | AI answers location questions: daily/weekly compliance per office, location utilization patterns, recurring compliance issues by location | P2 |
+| FR-17 | Role-Based View Toggle | System provides dropdown toggle to switch between Manager, Director, and SVP views for demo purposes | P0 |
+| FR-18 | Dynamic Data Filtering | System automatically adjusts data access and AI context based on selected demo role | P0 |
+| FR-19 | Role-Appropriate Insights | AI assistant provides recommendations and insights appropriate to the selected role level | P1 |
 
 **Priority Legend:** P0 = Must Have (POC Blocker) | P1 = Should Have | P2 = Nice to Have
 
@@ -396,6 +431,19 @@ The AI assistant must be capable of answering specific analytical questions acro
 - No drill-down to individual level available
 - Decline message is respectful and explains policy
 
+### US-8: Role-Based Demo Toggle
+
+**As a** solution demonstrator, **I want to** toggle between Manager, Director, and SVP views **so that** I can show different stakeholder perspectives in a single demo session.
+
+**Acceptance Criteria:**
+- Toggle dropdown clearly visible in dashboard header
+- Role selection updates data filtering within 3 seconds
+- AI assistant context adapts to selected role
+- SVP view shows highest level of aggregated data
+- Manager view shows most granular team-level data
+- Director view shows intermediate departmental data
+- Privacy rules enforced consistently across all role views
+
 ---
 
 ## 8. User Flows
@@ -449,7 +497,7 @@ The POC dashboard follows a simple 2-column layout optimized for desktop viewing
 
 | Component | Contents |
 |---|---|
-| Header Bar | Logo, user name, "Last Updated: [date]", Help icon |
+| Header Bar | Logo, **Role Toggle Dropdown (View as: Manager/Director/SVP)**, user name, "Last Updated: [date]", Help icon |
 | Left Panel (60%) | Compliance KPI Card, 3-Month Trend Chart, Team Breakdown Bar Chart |
 | Right Panel (40%) | Copilot Studio chat interface, Day-of-Week Heatmap |
 | Footer | Privacy notice, Feedback link |
