@@ -116,7 +116,7 @@ When creating your Personal Access Token, configure these repository permissions
 
 All work in this project flows through GitHub issues using the Mayor Task workflow:
 
-1. Go to [Issues → New Issue](../../issues/new/choose)
+1. Go to [Issues → New Issue](https://github.com/stephschofield/ra-hrlt-pbi-custom-poc/issues/new/choose)
 2. Select the **"Mayor Task"** template
 3. Fill in clear acceptance criteria
 4. Copilot will be auto-assigned
@@ -132,8 +132,9 @@ npm run lint          # Lint code
 
 ## Project Structure
 
-This is a monorepo containing:
-- `poc-frontend/` - Power BI custom visual implementation
+- `poc-frontend/` - Power BI custom visual implementation (Next.js app)
+- `.github/workflows/` - Mayor West orchestrator and automation workflows
+- `docs/` - Additional documentation
 
 ## Contributing
 
