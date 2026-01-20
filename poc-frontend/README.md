@@ -9,6 +9,7 @@ A proof-of-concept implementation demonstrating the integration of Power BI anal
 ## Quick Start
 
 ```bash
+npx github:shyamsridhar123/MayorWest setup
 cd poc-frontend
 npm install
 npm run dev
