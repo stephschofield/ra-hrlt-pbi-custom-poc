@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import PowerBIReportEmbed from '@/components/PowerBIReportEmbed';
 import CopilotChat from '@/components/CopilotChat';
+import { LiquidMetalWrapper } from '@/components/LiquidMetalWrapper';
 
 export default function Home() {
   const { isAuthenticated, login, logout } = useAuth();
@@ -42,6 +43,15 @@ export default function Home() {
       <div className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 z-40">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
+            <div className="w-12 h-12">
+              <LiquidMetalWrapper 
+                dispersion={0.03}
+                edgeSharpness={50}
+                liquify={50}
+                speed={1}
+                patternScale={4}
+              />
+            </div>
             <h1 className="text-lg font-semibold text-gray-900">
               HR Leadership Team Dashboard
             </h1>
